@@ -1,0 +1,21 @@
+label { 
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold; 
+}
+button{
+    background-color: rgb(28, 139, 28);
+    border: none;
+    color:white;
+    border-radius: 10px;
+    padding: 10px;
+    margin-left: 10px;
+    margin-top: 5px;
+}
+button:hover{
+    background-color: rgb(5, 68, 37);
+}
+.formg{
+    margin-bottom: 15px;
+    padding: 8px;
+}
