@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .full-width {
+            grid-column: span 2;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .btn-add {
+            background: #2ecc71;
+            color: white;
+        }
+        .btn-clear {
+            background: #e74c3c;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .btn-delete {
+            background: #ff4757;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: -10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>User Registration</h2>
+    <form id="userForm">
+        <input type="text" id="userName" placeholder="Full Name" required>
+        <input type="email" id="userEmail" placeholder="Email Address" required>
+        <input type="text" id="userMobile" placeholder="Mobile (10 digits)" required>
+        <input type="password" id="userPass" placeholder="Password (Min 6 chars)" required>
+        <button type="submit" class="btn-add full-width">Register User</button>
+    </form>
+
+    <hr>
+
+    <h2>Registered Users</h2>
+    <button class="btn-clear" onclick="clearAll()">Clear All Users</button>
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="userList"></tbody>
+    </table>
+</div>
+
+<script>
+    const userForm = document.getElementById('userForm');
+    const userList = document.getElementById('userList');
+
+    document.addEventListener('DOMContentLoaded', displayUsers);
+
+    userForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('userName').value;
+        const email = document.getElementById('userEmail').value;
+        const mobile = document.getElementById('userMobile').value;
+        const pass = document.getElementById('userPass').value;
+
+        if (mobile.length !== 10 || isNaN(mobile)) {
+            alert("Mobile number must be exactly 10 digits.");
+            return;
+        }
+        if (pass.length < 6) {
+            alert("Password must be at least 6 characters.");
+            return;
+        }
+
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+
+        if (users.some(user => user.email === email)) {
+            alert("This email is already registered.");
+            return;
+        }
+
+        const newUser = { name, email, mobile, pass };
+        users.push(newUser);
+        localStorage.setItem('users', JSON.stringify(users));
+
+        userForm.reset();
+        displayUsers();
+    });
+
+    function displayUsers() {
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        userList.innerHTML = '';
+
+        users.forEach((user, index) => {
+            const row = `
+                <tr>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.mobile}</td>
+                    <td><button class="btn-delete" onclick="deleteUser(${index})">Delete</button></td>
+                </tr>
+            `;
+            userList.innerHTML += row;
+        });
+    }
+
+    function deleteUser(index) {
+        const users = JSON.parse(localStorage.getItem('users'));
+        users.splice(index, 1);
+        localStorage.setItem('users', JSON.stringify(users));
+        displayUsers();
+    }
+
+    function clearAll() {
+        if (confirm("Are you sure you want to delete all users?")) {
+            localStorage.removeItem('users');
+            displayUsers();
+        }
+    }
+</script>
+
+</body>
+</html>
