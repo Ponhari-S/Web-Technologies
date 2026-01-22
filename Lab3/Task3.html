@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Survey Builder</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; width: 100%; max-width: 600px; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; }
+
+        .question-group { margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fafafa; }
+        .question-label { display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50; }
+        .required-mark { color: #e74c3c; margin-left: 3px; }
+        
+        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .option-label { display: block; margin-bottom: 5px; cursor: pointer; color: #555; }
+        
+        .error-msg { color: #e74c3c; font-size: 0.85rem; margin-top: 5px; display: none; }
+        .question-group.error { border-color: #e74c3c; background-color: #fff8f8; }
+        .question-group.error .error-msg { display: block; }
+        
+        button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #219150; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Feedback Survey</h1>
+    <form id="surveyForm">
+        <div id="survey-container">
+            </div>
+        <button type="submit">Submit Survey</button>
+    </form>
+</div>
+
+<script>
+    const surveyConfig = [
+        {
+            id: 'q1',
+            type: 'text',
+            label: 'Full Name',
+            required: true,
+            placeholder: 'John Doe',
+            maxChars: 50
+        },
+        {
+            id: 'q2',
+            type: 'radio',
+            label: 'How satisfied were you with our service?',
+            required: true,
+            options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied']
+        },
+        {
+            id: 'q3',
+            type: 'checkbox',
+            label: 'Which features did you use? (Select at least 2)',
+            required: true,
+            minSelect: 2,
+            options: ['Dashboard', 'Reports', 'User Management', 'API Integration', 'Notifications']
+        },
+        {
+            id: 'q4',
+            type: 'text',
+            label: 'Additional Comments (Optional)',
+            required: false,
+            placeholder: 'Tell us more...',
+            maxChars: 200
+        }
+    ];
+
+    function renderSurvey() {
+        const container = document.getElementById('survey-container');
+        
+        surveyConfig.forEach(q => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'question-group';
+            wrapper.dataset.id = q.id;
+
+            const label = document.createElement('label');
+            label.className = 'question-label';
+            label.innerHTML = `${q.label} ${q.required ? '<span class="required-mark">*</span>' : ''}`;
+            wrapper.appendChild(label);
+
+            if (q.type === 'text') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = q.id;
+                if(q.placeholder) input.placeholder = q.placeholder;
+                wrapper.appendChild(input);
+                
+                if (q.maxChars) {
+                    const hint = document.createElement('small');
+                    hint.style.color = '#777';
+                    hint.innerText = `Max ${q.maxChars} characters`;
+                    wrapper.appendChild(hint);
+                }
+
+            } else if (q.type === 'radio' || q.type === 'checkbox') {
+                q.options.forEach(opt => {
+                    const div = document.createElement('div');
+                    const optInput = document.createElement('input');
+                    optInput.type = q.type;
+                    optInput.name = q.id;
+                    optInput.value = opt;
+                    
+                    const optLabel = document.createElement('span');
+                    optLabel.innerText = ` ${opt}`;
+                    
+                    const lbl = document.createElement('label');
+                    lbl.className = 'option-label';
+                    lbl.appendChild(optInput);
+                    lbl.appendChild(optLabel);
+                    
+                    wrapper.appendChild(lbl);
+                });
+            }
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-msg';
+            wrapper.appendChild(errorDiv);
+
+            container.appendChild(wrapper);
+        });
+    }
+
+    function validateSurvey() {
+        let isValid = true;
+        const form = document.getElementById('surveyForm');
+
+        surveyConfig.forEach(q => {
+            const wrapper = document.querySelector(`.question-group[data-id="${q.id}"]`);
+            const errorMsg = wrapper.querySelector('.error-msg');
+            let qValid = true;
+            let message = '';
+
+            const inputs = form.querySelectorAll(`[name="${q.id}"]`);
+
+            if (q.type === 'text') {
+                const val = inputs[0].value.trim();
+                
+                if (q.required && val === '') {
+                    qValid = false;
+                    message = 'This field is required.';
+                } else if (q.maxChars && val.length > q.maxChars) {
+                    qValid = false;
+                    message = `Character limit exceeded (${val.length}/${q.maxChars}).`;
+                }
+            }
+
+            else if (q.type === 'radio') {
+                const isChecked = Array.from(inputs).some(i => i.checked);
+                if (q.required && !isChecked) {
+                    qValid = false;
+                    message = 'Please select an option.';
+                }
+            }
+
+            else if (q.type === 'checkbox') {
+                const checkedCount = Array.from(inputs).filter(i => i.checked).length;
+                
+                if (q.required && checkedCount === 0) {
+                    qValid = false;
+                    message = 'Please select at least one option.';
+                } else if (q.minSelect && checkedCount < q.minSelect) {
+                    qValid = false;
+                    message = `Please select at least ${q.minSelect} options.`;
+                }
+            }
+
+            if (!qValid) {
+                wrapper.classList.add('error');
+                errorMsg.innerText = message;
+                isValid = false;
+            } else {
+                wrapper.classList.remove('error');
+                errorMsg.innerText = '';
+            }
+        });
+
+        return isValid;
+    }
+
+    document.getElementById('surveyForm').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        
+        if (validateSurvey()) {
+            alert('Survey Validated Successfully! Submitting data...');
+            this.reset();
+            document.querySelectorAll('.question-group').forEach(el => el.classList.remove('error'));
+        } else {
+            document.querySelector('.question-group.error').scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+
+    renderSurvey();
+
+</script>
+</body>
+</html>
