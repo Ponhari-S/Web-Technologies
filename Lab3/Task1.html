@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Registration System</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { text-align: center; color: #333; margin-bottom: 1.5rem; }
+        
+        .form-group { margin-bottom: 1rem; position: relative; }
+        label { display: block; margin-bottom: 0.5rem; color: #666; font-weight: 500; }
+        input, select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; box-sizing: border-box; transition: border-color 0.3s; font-size: 1rem; }
+        
+        input.valid, select.valid { border-color: #2ecc71; }
+        input.invalid, select.invalid { border-color: #e74c3c; }
+        
+        .error-msg { color: #e74c3c; font-size: 0.85rem; margin-top: 5px; height: 1.2em; display: block; }
+        
+        .hidden { display: none; }
+
+        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: #2980b9; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-bottom: 10px; background: #eee; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>User Registration</h2>
+    <div style="text-align: center;"><span id="rule-display" class="role-badge">Current Mode: Student Rules</span></div>
+    
+    <form id="regForm">
+        <div class="form-group">
+            <label for="role">Select Role</label>
+            <select id="role" name="role">
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+
+        <div class="form-group hidden" id="student-field">
+            <label for="studentId">Student ID (e.g., 23BCE****)</label>
+            <input type="text" id="studentId">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group hidden" id="teacher-field">
+            <label for="department">Department</label>
+            <input type="text" id="department">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="fullname">Full Name</label>
+            <input type="text" id="fullname">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="age">Age</label>
+            <input type="number" id="age">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword">
+            <span class="error-msg"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="skills">Skills (Comma separated)</label>
+            <input type="text" id="skills" placeholder="HTML, CSS, JS">
+            <span class="error-msg"></span>
+        </div>
+
+        <button type="submit" id="submitBtn">Register</button>
+    </form>
+</div>
+
+<script>
+
+    const ROLE_RULES = {
+        student: {
+            minAge: 16,
+            pwdMinLen: 6,
+            pwdComplex: false,
+            emailDomain: null,
+            desc: "Simple password (6+ chars), Age 16+"
+        },
+        teacher: {
+            minAge: 21,
+            pwdMinLen: 8,
+            pwdComplex: true, 
+            emailDomain: ".edu",
+            desc: "Strong password (8+ chars), Age 21+, .edu email"
+        },
+        admin: {
+            minAge: 25,
+            pwdMinLen: 12,
+            pwdComplex: true,
+            emailDomain: "@admin.com", 
+            desc: "Super strong password (12+ chars, Special), Age 25+, @admin.com"
+        }
+    };
+
+    const form = document.getElementById('regForm');
+    const roleSelect = document.getElementById('role');
+    const ruleDisplay = document.getElementById('rule-display');
+    const inputs = form.querySelectorAll('input');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let currentRole = 'student';
+
+    roleSelect.addEventListener('change', (e) => {
+        currentRole = e.target.value;
+        updateUIForRole(currentRole);
+        validateAll();
+    });
+
+    inputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            validateField(e.target);
+            checkFormValidity();
+        });
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if(checkFormValidity()) {
+            alert(`Success! Registered as ${currentRole.toUpperCase()}`);
+            form.reset();
+            updateUIForRole('student');
+            resetValidationStyles();
+        }
+    });
+
+    function updateUIForRole(role) {
+        ruleDisplay.textContent = `Mode: ${ROLE_RULES[role].desc}`;
+
+        document.getElementById('student-field').classList.add('hidden');
+        document.getElementById('teacher-field').classList.add('hidden');
+
+        if (role === 'student') {
+            document.getElementById('student-field').classList.remove('hidden');
+        } else if (role === 'teacher') {
+            document.getElementById('teacher-field').classList.remove('hidden');
+        }
+    }
+
+    function setError(input, message) {
+        const formGroup = input.parentElement;
+        const errorDisplay = formGroup.querySelector('.error-msg');
+        
+        if (message) {
+            input.classList.add('invalid');
+            input.classList.remove('valid');
+            errorDisplay.textContent = message;
+            return false;
+        } else {
+            input.classList.add('valid');
+            input.classList.remove('invalid');
+            errorDisplay.textContent = '';
+            return true;
+        }
+    }
+
+    function validateField(input) {
+        const rules = ROLE_RULES[currentRole];
+        const value = input.value.trim();
+        const id = input.id;
+
+        if(input.offsetParent === null) return true;
+
+        if (id === 'fullname') {
+            if (value.length < 3) return setError(input, "Name must be at least 3 characters.");
+            return setError(input, null);
+        }
+
+        if (id === 'age') {
+            if (!value) return setError(input, "Age is required.");
+            if (value < rules.minAge) return setError(input, `Minimum age for ${currentRole} is ${rules.minAge}.`);
+            return setError(input, null);
+        }
+
+        if (id === 'email') {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(value)) return setError(input, "Invalid email format.");
+            
+            if (rules.emailDomain && !value.endsWith(rules.emailDomain)) {
+                return setError(input, `Email must end with ${rules.emailDomain}`);
+            }
+            return setError(input, null);
+        }
+
+        if (id === 'password') {
+            if (value.length < rules.pwdMinLen) {
+                return setError(input, `Password must be ${rules.pwdMinLen}+ characters.`);
+            }
+            if (rules.pwdComplex) {
+                const hasNumber = /\d/.test(value);
+                const hasSpecial = /[!@#$%^&*]/.test(value);
+                if (!hasNumber || !hasSpecial) {
+                    return setError(input, "Must contain a number and special char (!@#$%).");
+                }
+            }
+            
+            const confirmInput = document.getElementById('confirmPassword');
+            if (confirmInput.value) validateField(confirmInput);
+            
+            return setError(input, null);
+        }
+
+        if (id === 'confirmPassword') {
+            const pwd = document.getElementById('password').value;
+            if (value !== pwd) return setError(input, "Passwords do not match.");
+            return setError(input, null);
+        }
+
+        if (id === 'studentId' && currentRole === 'student') {
+            if (!/^23BCE\d{4}$/.test(value)) return setError(input, "Format must be 23BCE****.");
+            return setError(input, null);
+        }
+        if (id === 'department' && currentRole === 'teacher') {
+            if (value.length < 2) return setError(input, "Department required.");
+            return setError(input, null);
+        }
+        
+        if (id === 'skills') {
+             if (value.length < 3) return setError(input, "List at least one skill.");
+             return setError(input, null);
+        }
+
+        return true;
+    }
+
+    function validateAll() {
+        let isValid = true;
+        inputs.forEach(input => {
+            if(input.offsetParent !== null) {
+                if(!validateField(input)) isValid = false;
+            }
+        });
+        return isValid;
+    }
+
+    function checkFormValidity() {
+        const isValid = validateAll();
+        submitBtn.disabled = !isValid;
+        return isValid;
+    }
+
+    function resetValidationStyles() {
+        inputs.forEach(input => {
+            input.classList.remove('valid', 'invalid');
+            const errorDisplay = input.parentElement.querySelector('.error-msg');
+            if(errorDisplay) errorDisplay.textContent = '';
+        });
+    }
+
+    updateUIForRole('student');
+    checkFormValidity();
+</script>
+
+</body>
+</html>
