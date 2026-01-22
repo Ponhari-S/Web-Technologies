@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Registration</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #eef2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); padding: 40px; position: relative; overflow: hidden; }
+        
+        .progress-container { width: 100%; background-color: #e0e0e0; height: 6px; border-radius: 3px; margin-bottom: 30px; position: relative; }
+        .progress-bar { height: 100%; background-color: #3498db; width: 0%; border-radius: 3px; transition: width 0.4s ease; }
+        .step-indicator { position: absolute; top: -25px; right: 0; font-size: 0.85rem; color: #777; font-weight: bold; }
+
+        .step { display: none; animation: fadeIn 0.4s; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { margin-top: 0; color: #333; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.3s; }
+        input:focus { border-color: #3498db; outline: none; }
+        
+        input.error { border-color: #e74c3c; background-color: #fff8f8; }
+        .error-msg { color: #e74c3c; font-size: 0.85rem; margin-top: 5px; display: none; }
+        
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .summary-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .summary-table td:first-child { font-weight: bold; color: #555; width: 40%; }
+
+        .button-group { display: flex; justify-content: space-between; margin-top: 30px; }
+        button { padding: 12px 25px; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        .btn-prev { background-color: #95a5a6; color: white; }
+        .btn-prev:hover { background-color: #7f8c8d; }
+        .btn-prev:disabled { opacity: 0; cursor: default; } /* Hide on first step */
+        
+        .btn-next { background-color: #3498db; color: white; }
+        .btn-next:hover { background-color: #2980b9; }
+        
+        .btn-submit { background-color: #2ecc71; color: white; display: none; }
+        .btn-submit:hover { background-color: #27ae60; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="step-indicator">Step <span id="step-number">1</span> of 4</div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <form id="multiStepForm">
+        
+        <div class="step active" id="step-0">
+            <h2>Account Setup</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="jdoe123">
+                <span class="error-msg">Username must be 4+ characters.</span>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="********">
+                <span class="error-msg">Password must be 8+ characters.</span>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirmParams">
+                <span class="error-msg">Passwords do not match.</span>
+            </div>
+        </div>
+
+        <div class="step" id="step-1">
+            <h2>Personal Details</h2>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="fullname">
+                <span class="error-msg">Name is required.</span>
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="john@example.com">
+                <span class="error-msg">Invalid email format.</span>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="phone" placeholder="10 digits">
+                <span class="error-msg">Must be a 10-digit number.</span>
+            </div>
+        </div>
+
+        <div class="step" id="step-2">
+            <h2>Preferences</h2>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="role">
+                    <option value="">-- Select Role --</option>
+                    <option value="Developer">Developer</option>
+                    <option value="Designer">Designer</option>
+                    <option value="Manager">Manager</option>
+                </select>
+                <span class="error-msg">Please select a role.</span>
+            </div>
+            <div class="form-group">
+                <label>Work Mode</label>
+                <select id="mode">
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="step" id="step-3">
+            <h2>Review & Submit</h2>
+            <p>Please review your information before submitting.</p>
+            <table class="summary-table" id="summary-table">
+                </table>
+        </div>
+
+        <div class="button-group">
+            <button type="button" class="btn-prev" id="prevBtn" onclick="changeStep(-1)">Back</button>
+            <button type="button" class="btn-next" id="nextBtn" onclick="changeStep(1)">Next Step</button>
+            <button type="submit" class="btn-submit" id="submitBtn">Submit Form</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let currentStep = 0;
+    const totalSteps = 4;
+    
+    let formData = {
+        username: '', password: '', fullname: '', email: '', phone: '', role: '', mode: ''
+    };
+
+    const steps = document.querySelectorAll('.step');
+    const progressBar = document.getElementById('progress-bar');
+    const stepNumber = document.getElementById('step-number');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    updateUI();
+
+    function changeStep(direction) {
+        if (direction === 1 && !validateCurrentStep()) {
+            return; 
+        }
+
+        if (direction === 1) saveCurrentData();
+
+        currentStep += direction;
+        updateUI();
+    }
+
+    function updateUI() {
+        steps.forEach((step, index) => {
+            step.classList.toggle('active', index === currentStep);
+        });
+
+        const progressPercentage = ((currentStep + 1) / totalSteps) * 100;
+        progressBar.style.width = `${progressPercentage}%`;
+        stepNumber.innerText = currentStep + 1;
+
+        prevBtn.disabled = currentStep === 0;
+        
+        if (currentStep === totalSteps - 1) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'block';
+            renderSummary();
+        } else {
+            nextBtn.style.display = 'block';
+            submitBtn.style.display = 'none';
+            nextBtn.innerText = currentStep === totalSteps - 2 ? 'Review' : 'Next Step';
+        }
+    }
+
+    function saveCurrentData() {
+        if(currentStep === 0) {
+            formData.username = document.getElementById('username').value;
+            formData.password = document.getElementById('password').value;
+        } else if (currentStep === 1) {
+            formData.fullname = document.getElementById('fullname').value;
+            formData.email = document.getElementById('email').value;
+            formData.phone = document.getElementById('phone').value;
+        } else if (currentStep === 2) {
+            formData.role = document.getElementById('role').value;
+            formData.mode = document.getElementById('mode').value;
+        }
+    }
+
+    function renderSummary() {
+        const table = document.getElementById('summary-table');
+        table.innerHTML = `
+            <tr><td>Username:</td><td>${formData.username}</td></tr>
+            <tr><td>Full Name:</td><td>${formData.fullname}</td></tr>
+            <tr><td>Email:</td><td>${formData.email}</td></tr>
+            <tr><td>Phone:</td><td>${formData.phone}</td></tr>
+            <tr><td>Role:</td><td>${formData.role} (${formData.mode})</td></tr>
+        `;
+    }
+
+    function showError(input, msg, show) {
+        const errorSpan = input.parentElement.querySelector('.error-msg');
+        if (show) {
+            input.classList.add('error');
+            errorSpan.style.display = 'block';
+            errorSpan.innerText = msg;
+            return false;
+        } else {
+            input.classList.remove('error');
+            errorSpan.style.display = 'none';
+            return true;
+        }
+    }
+
+    function validateCurrentStep() {
+        let isValid = true;
+
+        if (currentStep === 0) {
+            const user = document.getElementById('username');
+            const pass = document.getElementById('password');
+            const conf = document.getElementById('confirmParams');
+
+            if (user.value.length < 4) isValid = showError(user, "Min 4 characters.", true);
+            else showError(user, "", false);
+
+            if (pass.value.length < 8) isValid = showError(pass, "Min 8 characters.", true) && isValid;
+            else showError(pass, "", false);
+
+            if (conf.value !== pass.value) isValid = showError(conf, "Passwords don't match.", true) && isValid;
+            else showError(conf, "", false);
+        }
+        
+        else if (currentStep === 1) {
+            const name = document.getElementById('fullname');
+            const email = document.getElementById('email');
+            const phone = document.getElementById('phone');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const phoneRegex = /^\d{10}$/;
+
+            if (name.value.trim() === "") isValid = showError(name, "Name required.", true) && isValid;
+            else showError(name, "", false);
+
+            if (!emailRegex.test(email.value)) isValid = showError(email, "Invalid email.", true) && isValid;
+            else showError(email, "", false);
+
+            if (!phoneRegex.test(phone.value)) isValid = showError(phone, "10 digits required.", true) && isValid;
+            else showError(phone, "", false);
+        }
+        
+        else if (currentStep === 2) {
+            const role = document.getElementById('role');
+            if (role.value === "") isValid = showError(role, "Role required.", true) && isValid;
+            else showError(role, "", false);
+        }
+
+        return isValid;
+    }
+
+    document.getElementById('multiStepForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Form Submitted Successfully!\nData sent to server.');
+        console.log(formData);
+    });
+
+</script>
+</body>
+</html>
