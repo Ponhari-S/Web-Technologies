@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Activity Monitor</title>
+    <style>
+        body { font-family: 'Consolas', 'Courier New', monospace; padding: 20px; background: #222; color: #eee; display: flex; gap: 20px; height: 90vh; }
+        
+        .interactive-zone { flex: 1; background: #333; padding: 20px; border-radius: 8px; border: 1px solid #444; }
+        .log-panel { flex: 1; background: #000; border: 1px solid #33f; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+        
+        input, button { display: block; width: 100%; padding: 10px; margin-bottom: 15px; background: #444; border: 1px solid #555; color: white; border-radius: 4px; }
+        button:hover { background: #555; cursor: pointer; }
+        .test-area { height: 100px; background: #2a2a2a; border: 2px dashed #555; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; cursor: crosshair; }
+
+        .log-header { background: #111; padding: 10px; border-bottom: 1px solid #33f; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .log-content { flex: 1; padding: 10px; overflow-y: auto; font-size: 0.85rem; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .log-time { color: #888; margin-right: 10px; }
+        .log-type { display: inline-block; width: 60px; font-weight: bold; }
+        
+        .type-click { color: #2ecc71; }
+        .type-keydown { color: #f1c40f; }
+        .type-focus { color: #3498db; }
+        .type-blur { color: #9b59b6; }
+        .type-warning { color: #e74c3c; font-weight: bold; background: rgba(231, 76, 60, 0.1); padding: 2px; }
+
+        .controls { margin-top: 10px; display: flex; gap: 10px; }
+        .btn-action { width: auto; background: #33f; border: none; }
+        .btn-danger { width: auto; background: #c0392b; border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="interactive-zone" id="trackingZone">
+        <h2>Interactive Zone</h2>
+        <p>Click, type, or tab through fields here to generate logs.</p>
+        
+        <div class="test-area">Click Me / Hover Me</div>
+        <input type="text" placeholder="Type something here...">
+        <input type="email" placeholder="Focus/Blur test...">
+        <button id="dummyBtn">Click Button</button>
+        
+        <div class="controls">
+            <button class="btn-action" onclick="exportLog()">Export Log</button>
+            <button class="btn-danger" onclick="resetLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <div class="log-panel">
+        <div class="log-header">
+            <span>Live Activity Feed</span>
+            <span id="event-count" style="font-size: 0.8em; color: #888">0 Events</span>
+        </div>
+        <div id="log-display" class="log-content">
+            </div>
+    </div>
+
+<script>
+    let activityLog = [];
+    const MAX_DISPLAY_LOGS = 50;
+    
+    const RATE_LIMIT_WINDOW = 2000;
+    const RATE_LIMIT_COUNT = 10;
+    let warningActive = false;
+
+    function logEvent(type, target, details = '') {
+        const timestamp = new Date();
+        const timeString = timestamp.toLocaleTimeString();
+
+        const entry = {
+            id: Date.now() + Math.random(),
+            time: timestamp.toISOString(),
+            type: type,
+            target: target.tagName ? target.tagName.toLowerCase() + (target.id ? `#${target.id}` : '') : 'window',
+            details: details
+        };
+
+        activityLog.push(entry);
+        
+        detectSuspiciousBehavior();
+
+        renderEntry(entry, timeString);
+    }
+
+    function renderEntry(entry, timeString) {
+        const display = document.getElementById('log-display');
+        const countLabel = document.getElementById('event-count');
+
+        const div = document.createElement('div');
+        div.className = `log-entry ${entry.type === 'WARNING' ? 'type-warning' : ''}`;
+        
+        let typeClass = `type-${entry.type}`;
+        
+        div.innerHTML = `
+            <span class="log-time">[${timeString}]</span>
+            <span class="log-type ${typeClass}">${entry.type.toUpperCase()}</span>
+            <span style="color: #ccc">${entry.target}</span>
+            <span style="color: #777; font-size: 0.8em"> ${entry.details}</span>
+        `;
+
+        display.insertBefore(div, display.firstChild);
+        
+        if (display.children.length > MAX_DISPLAY_LOGS) {
+            display.removeChild(display.lastChild);
+        }
+
+        countLabel.innerText = `${activityLog.length} Events`;
+    }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.log-panel')) return;
+
+        logEvent('click', e.target, `(x:${e.clientX}, y:${e.clientY})`);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        logEvent('keydown', e.target, `Key: "${e.key}"`);
+    });
+
+    document.addEventListener('focus', (e) => {
+        logEvent('focus', e.target, 'Element gained focus');
+    }, { capture: true }); 
+
+    document.addEventListener('blur', (e) => {
+        logEvent('blur', e.target, 'Element lost focus');
+    }, { capture: true });
+
+    function detectSuspiciousBehavior() {
+        if (warningActive || activityLog.length < RATE_LIMIT_COUNT) return;
+
+        const recentEvents = activityLog.slice(-RATE_LIMIT_COUNT);
+        const startTime = new Date(recentEvents[0].time).getTime();
+        const endTime = new Date(recentEvents[recentEvents.length - 1].time).getTime();
+
+        if ((endTime - startTime) < RATE_LIMIT_WINDOW) {
+            triggerWarning();
+        }
+    }
+
+    function triggerWarning() {
+        warningActive = true;
+        
+        logEvent('WARNING', { tagName: 'SYSTEM' }, 'High activity rate detected!');
+        
+        document.body.style.backgroundColor = '#3e1a1a';
+        setTimeout(() => {
+            document.body.style.backgroundColor = '#222';
+            warningActive = false;
+        }, 1000);
+    }
+
+    function resetLog() {
+        activityLog = [];
+        document.getElementById('log-display').innerHTML = '';
+        document.getElementById('event-count').innerText = '0 Events';
+        logEvent('system', { tagName: 'RESET' }, 'Log cleared');
+    }
+
+    function exportLog() {
+        if (activityLog.length === 0) {
+            alert("Log is empty.");
+            return;
+        }
+
+        const textContent = activityLog.map(e => 
+            `[${e.time}] ${e.type.toUpperCase()} on <${e.target}>: ${e.details}`
+        ).join('\n');
+
+        const blob = new Blob([textContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `activity_log_${Date.now()}.txt`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>
