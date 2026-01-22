@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shopping Cart</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #e74c3c; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        
+        .layout { display: grid; grid-template-columns: 2fr 1.5fr; gap: 2rem; width: 100%; max-width: 1100px; }
+        
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .tag { display: inline-block; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: #eee; color: #555; margin-bottom: 5px; }
+        .price { font-size: 1.2rem; font-weight: bold; color: var(--primary); display: block; margin: 10px 0; }
+        button.add-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; }
+        button.add-btn:hover { background: #34495e; }
+
+        .cart-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
+        .qty-controls button { width: 25px; height: 25px; border: 1px solid #ddd; background: white; cursor: pointer; }
+        
+        .summary { margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .discount-row { color: var(--accent); font-size: 0.9rem; }
+        .total { font-size: 1.4rem; font-weight: bold; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
+        
+        .coupon-box { margin-top: 15px; display: flex; gap: 5px; }
+        input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .apply-btn { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        
+        .time-banner { grid-column: 1 / -1; background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 20px; }
+
+        @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <div class="time-banner" id="timeBanner">
+        </div>
+
+    <div>
+        <h2>Catalog</h2>
+        <div id="product-list" class="products-grid"></div>
+    </div>
+
+    <div class="cart-panel">
+        <h2>Your Cart</h2>
+        <div id="cart-items">
+            <p style="color:#777">Your cart is empty.</p>
+        </div>
+        
+        <div class="summary">
+            <div class="row"><span>Subtotal:</span> <span id="subtotal">$0.00</span></div>
+            <div id="discount-list"></div>
+            <div class="row total"><span>Total:</span> <span id="final-total">$0.00</span></div>
+        </div>
+
+        <div class="coupon-box">
+            <input type="text" id="coupon-code" placeholder="Code: SAVE10">
+            <button class="apply-btn" onclick="applyCoupon()">Apply</button>
+        </div>
+        <p id="coupon-msg" style="font-size: 0.8rem; margin-top: 5px; height: 1em;"></p>
+    </div>
+</div>
+
+<script>
+    const products = [
+        { id: 1, name: 'Gaming Laptop', price: 1200, category: 'Electronics' },
+        { id: 2, name: 'Wireless Mouse', price: 50, category: 'Electronics' },
+        { id: 3, name: 'Cotton T-Shirt', price: 25, category: 'Clothing' },
+        { id: 4, name: 'Denim Jeans', price: 60, category: 'Clothing' },
+        { id: 5, name: 'Coffee Maker', price: 80, category: 'Home' },
+        { id: 6, name: 'Smart Watch', price: 200, category: 'Electronics' }
+    ];
+
+    let cart = [];
+    let activeCoupon = null;
+    
+    const VALID_COUPONS = {
+        'SAVE10': 0.10,
+        'WELCOME': 5 
+    };
+
+    function init() {
+        const hour = new Date().getHours();
+        const isHappyHour = (hour >= 14 && hour <= 17); 
+        
+        const banner = document.getElementById('timeBanner');
+        banner.innerHTML = isHappyHour 
+            ? `🔥 <strong>Happy Hour Active!</strong> (14:00-17:00) Extra 5% off all Electronics.` 
+            : `Current Hour: ${hour}:00. Happy Hour is 14:00-17:00.`;
+
+        renderProducts();
+        renderCart();
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('product-list');
+        container.innerHTML = products.map(p => `
+            <div class="card">
+                <span class="tag">${p.category}</span>
+                <h3>${p.name}</h3>
+                <span class="price">$${p.price}</span>
+                <button class="add-btn" onclick="addToCart(${p.id})">Add to Cart</button>
+            </div>
+        `).join('');
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cart-items');
+        
+        if (cart.length === 0) {
+            container.innerHTML = '<p style="color:#777">Your cart is empty.</p>';
+            updateTotals(); 
+            return;
+        }
+
+        container.innerHTML = cart.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            return `
+                <div class="cart-item">
+                    <div>
+                        <strong>${product.name}</strong><br>
+                        <small>$${product.price} x ${item.qty}</small>
+                    </div>
+                    <div class="qty-controls">
+                        <button onclick="updateQty(${item.productId}, -1)">-</button>
+                        <span>${item.qty}</span>
+                        <button onclick="updateQty(${item.productId}, 1)">+</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        updateTotals();
+    }
+
+    function addToCart(id) {
+        const existing = cart.find(c => c.productId === id);
+        if (existing) {
+            existing.qty++;
+        } else {
+            cart.push({ productId: id, qty: 1 });
+        }
+        renderCart();
+    }
+
+    function updateQty(id, change) {
+        const item = cart.find(c => c.productId === id);
+        if (!item) return;
+
+        item.qty += change;
+        
+        if (item.qty <= 0) {
+            cart = cart.filter(c => c.productId !== id);
+        }
+        renderCart();
+    }
+
+    function updateTotals() {
+        let subtotal = 0;
+        let discountList = [];
+        let totalDiscountAmount = 0;
+
+        cart.forEach(item => {
+            const product = products.find(p => p.id === item.productId);
+            const lineTotal = product.price * item.qty;
+            subtotal += lineTotal;
+
+            if (item.qty >= 5) {
+                const bulkAmt = lineTotal * 0.10;
+                totalDiscountAmount += bulkAmt;
+                discountList.push(`Bulk (${product.name}): -$${bulkAmt.toFixed(2)}`);
+            }
+        });
+
+        const hour = new Date().getHours();
+        const isHappyHour = (hour >= 14 && hour <= 17);
+        
+        if (isHappyHour) {
+            const elecTotal = cart.reduce((acc, item) => {
+                const p = products.find(x => x.id === item.productId);
+                return p.category === 'Electronics' ? acc + (p.price * item.qty) : acc;
+            }, 0);
+
+            if (elecTotal > 0) {
+                const happyDisc = elecTotal * 0.05; 
+                totalDiscountAmount += happyDisc;
+                discountList.push(`Happy Hour (Electronics): -$${happyDisc.toFixed(2)}`);
+            }
+        }
+
+        if (activeCoupon) {
+            if (activeCoupon.type === 'percent') {
+                const cAmount = subtotal * activeCoupon.val;
+                totalDiscountAmount += cAmount;
+                discountList.push(`Coupon (${activeCoupon.code}): -$${cAmount.toFixed(2)}`);
+            } else if (activeCoupon.type === 'flat') {
+                totalDiscountAmount += activeCoupon.val;
+                discountList.push(`Coupon (${activeCoupon.code}): -$${activeCoupon.val.toFixed(2)}`);
+            }
+        }
+
+        const finalTotal = Math.max(0, subtotal - totalDiscountAmount);
+
+        document.getElementById('subtotal').innerText = `$${subtotal.toFixed(2)}`;
+        document.getElementById('final-total').innerText = `$${finalTotal.toFixed(2)}`;
+        
+        const discContainer = document.getElementById('discount-list');
+        discContainer.innerHTML = discountList.map(d => 
+            `<div class="row discount-row"><span>${d.split(':')[0]}</span> <span>${d.split(':')[1]}</span></div>`
+        ).join('');
+    }
+
+    function applyCoupon() {
+        const input = document.getElementById('coupon-code');
+        const msg = document.getElementById('coupon-msg');
+        
+        const code = input.value.trim().toUpperCase(); 
+
+        if (!code) {
+            msg.innerText = "Please enter a code.";
+            msg.style.color = 'red';
+            return;
+        }
+
+        if (VALID_COUPONS.hasOwnProperty(code)) {
+            const val = VALID_COUPONS[code];
+
+            const type = val < 1 ? 'percent' : 'flat';
+            
+            activeCoupon = { code, val, type };
+            msg.innerText = `Success! Code ${code} applied.`;
+            msg.style.color = 'green';
+            renderCart();
+        } else {
+            activeCoupon = null;
+            msg.innerText = `Invalid code: ${code}`;
+            msg.style.color = 'red';
+            renderCart();
+        }
+    }
+
+    init();
+
+</script>
+</body>
+</html>
