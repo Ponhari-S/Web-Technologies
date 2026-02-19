@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Check</title>
+    <style>
+        body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column; /* Stack elements vertically */
+        justify-content: center;
+        align-items: center; /* Center horizontally */
+        height: 100vh;
+    }
+
+    h2 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 20px; /* Add spacing below the heading */
+    }
+
+    form {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        margin-top: 20px; /* Add spacing above the form */
+    }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+            width: 100%;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 95%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        input.invalid {
+            border-color: red;
+        }
+
+        #feedback {
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .loading {
+            color: gray;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Register Account</h2>
+    <form id="registrationForm">
+        <div class="form-group">
+            <label for="username">Choose Username:</label><br>
+            <input type="text" id="username" placeholder="Enter username..." required>
+            <span id="feedback"></span>
+        </div>
+        <button type="submit" id="submitBtn">Sign Up</button>
+    </form>
+
+    <script>
+        const usernameInput = document.getElementById('username');
+        const feedback = document.getElementById('feedback');
+        const submitBtn = document.getElementById('submitBtn');
+        let isAvailable = false;
+
+        usernameInput.addEventListener('input', async (e) => {
+            const username = e.target.value.trim();
+
+            // Reset state if input is empty
+            if (!username) {
+                feedback.textContent = "";
+                return;
+            }
+
+            // Show loading state
+            feedback.textContent = "Checking availability...";
+            feedback.className = "loading";
+            submitBtn.disabled = true;
+
+            try {
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const response = await fetch('task1.json');
+                const data = await response.json();
+                
+                const exists = data.takenUsernames.includes(username.toLowerCase());
+
+                if (exists) {
+                    feedback.textContent = "✖ Username already taken";
+                    feedback.className = "error";
+                    usernameInput.classList.add('invalid');
+                    isAvailable = false;
+                } else {
+                    feedback.textContent = "✔ Username available";
+                    feedback.className = "success";
+                    usernameInput.classList.remove('invalid');
+                    isAvailable = true;
+                }
+            } catch (error) {
+                feedback.textContent = "Error connecting to server";
+                console.error(error);
+            } finally {
+                // Re-enable button only if available
+                submitBtn.disabled = !isAvailable;
+            }
+        });
+
+        // Final submission check
+        document.getElementById('registrationForm').addEventListener('submit', (e) => {
+            if (!isAvailable) {
+                e.preventDefault();
+                alert("Please choose a valid username first.");
+            }
+        });
+    </script>
+</body>
+</html>
