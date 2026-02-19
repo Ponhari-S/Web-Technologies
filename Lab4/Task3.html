@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System - CRUD</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #007bff; margin-bottom: 25px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input { padding: 12px; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        input:focus { border-color: #007bff; outline: none; box-shadow: 0 0 5px rgba(0,123,255,0.2); }
+        
+        .btn { padding: 10px 20px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: all 0.3s ease; }
+        .btn-add { background: #28a745; color: white; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-add:hover { background: #218838; }
+        .btn-edit { background: #ffc107; color: #212529; font-size: 12px; }
+        .btn-delete { background: #dc3545; color: white; font-size: 12px; }
+        .btn-edit:hover { background: #e0a800; }
+        .btn-delete:hover { background: #c82333; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f8f9fa; color: #555; text-transform: uppercase; font-size: 13px; }
+        tr:hover { background-color: #fcfcfc; }
+
+        #message { margin: 20px 0; padding: 15px; display: none; border-radius: 6px; font-weight: 500; text-align: center; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: block !important; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: block !important; }
+        
+        .loading-spinner { font-style: italic; color: #666; text-align: center; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Student Management System</h2>
+    
+    <div id="message"></div>
+
+    <form id="studentForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="name" placeholder="e.g. John Doe" required>
+        </div>
+        <div class="form-group">
+            <label>Department</label>
+            <input type="text" id="dept" placeholder="e.g. Computer Science" required>
+        </div>
+        <div class="form-group">
+            <label>Marks</label>
+            <input type="number" id="marks" placeholder="0-100" required min="0" max="100">
+        </div>
+        <button type="submit" class="btn btn-add" id="submitBtn">Add Student</button>
+    </form>
+
+    <div id="loader" class="loading-spinner">Processing request...</div>
+
+    <table id="studentTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Student Name</th>
+                <th>Department</th>
+                <th>Marks</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="studentBody">
+            </tbody>
+    </table>
+</div>
+
+
+
+<script>
+    const API_URL = 'https://jsonplaceholder.typicode.com/users'; 
+    let studentDataList = [];
+    const studentForm = document.getElementById('studentForm');
+    const studentBody = document.getElementById('studentBody');
+    const messageBox = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+    const loader = document.getElementById('loader');
+
+    async function fetchStudents() {
+        showLoader(true);
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error(response.status);
+            const data = await response.json();
+            
+            studentDataList = data.slice(0, 5).map(user => ({
+                id: user.id,
+                name: user.name,
+                dept: user.company.name.split(' ')[0], 
+                marks: Math.floor(Math.random() * 40) + 60
+            }));
+
+            renderTable();
+        } catch (err) {
+            displayStatus("Failed to load students: HTTP " + err.message, "error");
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    function renderTable() {
+        studentBody.innerHTML = "";
+        if (studentDataList.length === 0) {
+            studentBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No students found.</td></tr>";
+            return;
+        }
+
+        studentDataList.forEach(student => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>#${student.id}</td>
+                <td><strong>${student.name}</strong></td>
+                <td>${student.dept}</td>
+                <td>${student.marks}%</td>
+                <td>
+                    <button class="btn btn-edit" onclick="setupEdit(${student.id})">Edit</button>
+                    <button class="btn btn-delete" onclick="deleteStudent(${student.id})">Delete</button>
+                </td>
+            `;
+            studentBody.appendChild(row);
+        });
+    }
+
+    studentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const id = document.getElementById('editId').value;
+        const payload = {
+            name: document.getElementById('name').value,
+            dept: document.getElementById('dept').value,
+            marks: document.getElementById('marks').value
+        };
+
+        showLoader(true);
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}/${id}` : API_URL;
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                body: JSON.stringify(payload),
+                headers: { 'Content-type': 'application/json' }
+            });
+
+            if (response.ok) {
+                if (id) {
+                    const index = studentDataList.findIndex(s => s.id == id);
+                    studentDataList[index] = { ...payload, id: parseInt(id) };
+                    displayStatus("Student updated successfully!", "success");
+                } else {
+                    const newId = studentDataList.length > 0 ? Math.max(...studentDataList.map(s => s.id)) + 1 : 1;
+                    studentDataList.push({ ...payload, id: newId });
+                    displayStatus("Student added successfully!", "success");
+                }
+                
+                resetForm();
+                renderTable();
+            } else {
+                displayStatus("Server Error: " + response.status, "error");
+            }
+        } catch (err) {
+            displayStatus("Network error occurred.", "error");
+        } finally {
+            showLoader(false);
+        }
+    });
+
+    async function deleteStudent(id) {
+        if (!confirm("Are you sure you want to delete this student?")) return;
+
+        showLoader(true);
+        try {
+            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            
+            if (response.status === 200 || response.status === 204) {
+                studentDataList = studentDataList.filter(s => s.id != id);
+                displayStatus("Student deleted successfully.", "success");
+                renderTable();
+            } else {
+                displayStatus("Error deleting student: " + response.status, "error");
+            }
+        } catch (err) {
+            displayStatus("Delete request failed.", "error");
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    function setupEdit(id) {
+        const student = studentDataList.find(s => s.id == id);
+        if (student) {
+            document.getElementById('editId').value = student.id;
+            document.getElementById('name').value = student.name;
+            document.getElementById('dept').value = student.dept;
+            document.getElementById('marks').value = student.marks;
+            
+            submitBtn.textContent = "Update Student Details";
+            submitBtn.style.background = "#007bff";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function resetForm() {
+        studentForm.reset();
+        document.getElementById('editId').value = "";
+        submitBtn.textContent = "Add Student";
+        submitBtn.style.background = "#28a745";
+    }
+
+    function displayStatus(text, type) {
+        messageBox.textContent = text;
+        messageBox.className = type;
+        setTimeout(() => { messageBox.style.display = "none"; }, 4000);
+    }
+
+    function showLoader(isVisible) {
+        loader.style.display = isVisible ? "block" : "none";
+        submitBtn.disabled = isVisible;
+    }
+
+    fetchStudents();
+</script>
+
+</body>
+</html>
