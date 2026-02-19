@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Record System - JSON CRUD</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-row { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 10px; margin-bottom: 20px; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #007bff; color: white; }
+        .btn { padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px; }
+        .btn-add { background: #28a745; color: white; width: 100%; grid-column: span 5; margin-top: 5px; }
+        .btn-del { background: #dc3545; color: white; }
+        .btn-edit { background: #ffc107; }
+        #status { padding: 10px; margin-bottom: 10px; border-radius: 4px; display: none; text-align: center; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Student Records (Local JSON)</h2>
+    <div id="status"></div>
+
+    <div class="form-row">
+        <input type="number" id="sId" placeholder="ID">
+        <input type="text" id="sName" placeholder="Name">
+        <input type="text" id="sCourse" placeholder="Course">
+        <input type="number" id="sMarks" placeholder="Marks">
+        <button class="btn btn-add" onclick="saveStudent()">Save Student</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Name</th><th>Course</th><th>Marks</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+    </table>
+</div>
+
+<script>
+    let students = [];
+    let editModeId = null;
+
+    async function init() {
+        try {
+            const response = await fetch('task3.json');
+            if (!response.ok) throw new Error("Could not load JSON file");
+            
+            students = await response.json();
+            renderTable();
+        } catch (err) {
+            showStatus("Error: " + err.message, "error");
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('studentTable');
+        tbody.innerHTML = students.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.course}</td>
+                <td>${s.marks}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="setEdit(${s.id})">Edit</button>
+                    <button class="btn btn-del" onclick="deleteStudent(${s.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function saveStudent() {
+        const id = parseInt(document.getElementById('sId').value);
+        const name = document.getElementById('sName').value.trim();
+        const course = document.getElementById('sCourse').value.trim();
+        const marks = parseInt(document.getElementById('sMarks').value);
+
+        if (!id || !name || !course || isNaN(marks)) {
+            showStatus("All fields are required and must be valid!", "error");
+            return;
+        }
+
+        if (editModeId) {
+            const idx = students.findIndex(s => s.id === editModeId);
+            students[idx] = { id, name, course, marks };
+            showStatus("Student updated successfully", "success");
+            editModeId = null;
+        } else {
+            if (students.some(s => s.id === id)) {
+                showStatus("ID already exists!", "error");
+                return;
+            }
+            students.push({ id, name, course, marks });
+            showStatus("Student added successfully", "success");
+        }
+
+        clearForm();
+        renderTable();
+    }
+
+    function deleteStudent(id) {
+        students = students.filter(s => s.id !== id);
+        showStatus("Student record removed", "success");
+        renderTable();
+    }
+
+    function setEdit(id) {
+        const s = students.find(s => s.id === id);
+        document.getElementById('sId').value = s.id;
+        document.getElementById('sName').value = s.name;
+        document.getElementById('sCourse').value = s.course;
+        document.getElementById('sMarks').value = s.marks;
+        editModeId = id;
+    }
+
+    function clearForm() {
+        document.querySelectorAll('input').forEach(i => i.value = "");
+    }
+
+    function showStatus(msg, type) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = type;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
