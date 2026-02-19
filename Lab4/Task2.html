@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Product Search</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f8f9fa; }
+        .search-container { max-width: 600px; margin: 0 auto; }
+        
+        input#searchInput {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        #resultsTable {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #resultsTable th, #resultsTable td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        #resultsTable th { background: #007bff; color: white; }
+
+        .status-msg { margin-top: 15px; text-align: center; color: #666; font-style: italic; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <h2>Product Catalog</h2>
+    <input type="text" id="searchInput" placeholder="Search by name or category...">
+    
+    <div id="status" class="status-msg"></div>
+
+    <table id="resultsTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const resultsTable = document.getElementById('resultsTable');
+    const resultsBody = document.getElementById('resultsBody');
+    const status = document.getElementById('status');
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+
+        // 1. Clear previous timer (Debounce)
+        clearTimeout(debounceTimer);
+
+        if (query === "") {
+            hideResults();
+            return;
+        }
+
+        // 2. Set new timer (wait 300ms after user stops typing)
+        debounceTimer = setTimeout(() => {
+            fetchProducts(query);
+        }, 300);
+    });
+
+    async function fetchProducts(query) {
+        status.textContent = "Searching...";
+        status.className = "status-msg";
+
+        try {
+            const response = await fetch('task2.json');
+            if (!response.ok) throw new Error("Failed to fetch data");
+            
+            const products = await response.json();
+
+            // 3. Filter logic
+            const filtered = products.filter(p => 
+                p.name.toLowerCase().includes(query) || 
+                p.category.toLowerCase().includes(query)
+            );
+
+            displayResults(filtered);
+        } catch (err) {
+            status.textContent = "Error: " + err.message;
+            status.className = "status-msg error";
+            hideResults();
+        }
+    }
+
+    function displayResults(items) {
+        resultsBody.innerHTML = ""; // Clear old results
+
+        if (items.length === 0) {
+            status.textContent = "No results found.";
+            hideResults();
+            return;
+        }
+
+        status.textContent = `Found ${items.length} items.`;
+        resultsTable.style.display = "table";
+
+        // 4. Dynamic DOM update
+        items.forEach(item => {
+            const row = `
+                <tr>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.category}</td>
+                    <td>$${item.price.toFixed(2)}</td>
+                </tr>
+            `;
+            resultsBody.innerHTML += row;
+        });
+    }
+
+    function hideResults() {
+        resultsTable.style.display = "none";
+        if (searchInput.value === "") status.textContent = "";
+    }
+</script>
+
+</body>
+</html>

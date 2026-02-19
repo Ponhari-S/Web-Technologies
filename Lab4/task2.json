@@ -1,0 +1,7 @@
+[
+    { "id": 1, "name": "Mechanical Keyboard", "price": 89.99, "category": "Electronics" },
+    { "id": 2, "name": "Coffee Mug", "price": 12.50, "category": "Kitchen" },
+    { "id": 3, "name": "Wireless Mouse", "price": 25.00, "category": "Electronics" },
+    { "id": 4, "name": "Gaming Chair", "price": 199.00, "category": "Furniture" },
+    { "id": 5, "name": "Desk Lamp", "price": 30.00, "category": "Home Decor" }
+]
