@@ -69,7 +69,6 @@
     searchInput.addEventListener('input', () => {
         const query = searchInput.value.toLowerCase().trim();
 
-        // 1. Clear previous timer (Debounce)
         clearTimeout(debounceTimer);
 
         if (query === "") {
@@ -77,7 +76,6 @@
             return;
         }
 
-        // 2. Set new timer (wait 300ms after user stops typing)
         debounceTimer = setTimeout(() => {
             fetchProducts(query);
         }, 300);
@@ -93,7 +91,6 @@
             
             const products = await response.json();
 
-            // 3. Filter logic
             const filtered = products.filter(p => 
                 p.name.toLowerCase().includes(query) || 
                 p.category.toLowerCase().includes(query)
@@ -108,7 +105,7 @@
     }
 
     function displayResults(items) {
-        resultsBody.innerHTML = ""; // Clear old results
+        resultsBody.innerHTML = ""; 
 
         if (items.length === 0) {
             status.textContent = "No results found.";
@@ -119,7 +116,6 @@
         status.textContent = `Found ${items.length} items.`;
         resultsTable.style.display = "table";
 
-        // 4. Dynamic DOM update
         items.forEach(item => {
             const row = `
                 <tr>
@@ -139,4 +135,5 @@
 </script>
 
 </body>
+
 </html>
