@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Inventory System</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 10px; margin-bottom: 20px; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #007bff; color: white; }
+        .low-stock { background-color: #fff3cd; color: #856404; font-weight: bold; } /* Conditional Formatting */
+        .total-value { margin-top: 20px; font-size: 1.2em; font-weight: bold; text-align: right; color: #28a745; }
+        .btn { padding: 10px 15px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
+        .btn-add { background: #28a745; color: white; }
+        .btn-del { background: #dc3545; color: white; }
+        #status { padding: 10px; margin-bottom: 15px; border-radius: 6px; display: none; text-align: center; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Product Inventory Management</h2>
+    <div id="status"></div>
+
+    <div class="controls">
+        <input type="number" id="pId" placeholder="Product ID">
+        <input type="text" id="pName" placeholder="Product Name">
+        <select id="pCat">
+            <option value="">Select Category</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Office">Office</option>
+            <option value="Furniture">Furniture</option>
+        </select>
+        <input type="number" id="pPrice" placeholder="Price">
+        <input type="number" id="pQty" placeholder="Stock Qty">
+        <button class="btn btn-add" onclick="addProduct()" style="grid-column: span 6;">Add Product</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <input type="text" id="searchBox" placeholder="Search by Category..." onkeyup="searchByCategory()">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody"></tbody>
+    </table>
+
+    <div class="total-value" id="totalDisplay">Total Inventory Value: $0.00</div>
+</div>
+
+<script>
+    let inventory = [];
+
+    async function loadInventory() {
+        try {
+            const response = await fetch('task4.json');
+            if (!response.ok) throw new Error("Failed to load inventory data");
+            inventory = await response.json();
+            updateUI();
+        } catch (err) {
+            showError(err.message);
+        }
+    }
+
+    function updateUI(data = inventory) {
+        const tbody = document.getElementById('inventoryBody');
+        tbody.innerHTML = "";
+        let totalVal = 0;
+
+        data.forEach(p => {
+            const isLowStock = p.quantity < 10; 
+            totalVal += p.price * p.quantity;
+
+            const row = `
+                <tr class="${isLowStock ? 'low-stock' : ''}">
+                    <td>${p.id}</td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>$${p.price.toFixed(2)}</td>
+                    <td>${p.quantity} ${isLowStock ? '(LOW)' : ''}</td>
+                    <td>
+                        <button class="btn" style="background:#ffc107" onclick="editStock(${p.id})">Edit</button>
+                        <button class="btn btn-del" onclick="deleteProduct(${p.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+
+        document.getElementById('totalDisplay').textContent = `Total Inventory Value: $${totalVal.toFixed(2)}`;
+    }
+
+    function addProduct() {
+        const id = parseInt(document.getElementById('pId').value);
+        const name = document.getElementById('pName').value.trim();
+        const category = document.getElementById('pCat').value;
+        const price = parseFloat(document.getElementById('pPrice').value);
+        const quantity = parseInt(document.getElementById('pQty').value);
+
+        if (!id || !name || !category || isNaN(price) || isNaN(quantity)) {
+            showError("Invalid data. Please fill all fields correctly.");
+            return;
+        }
+
+        inventory.push({ id, name, category, price, quantity });
+        updateUI();
+        clearForm();
+    }
+
+    function searchByCategory() {
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        const filtered = inventory.filter(p => p.category.toLowerCase().includes(query));
+        updateUI(filtered);
+    }
+
+    function editStock(id) {
+        const product = inventory.find(p => p.id === id);
+        const newPrice = prompt("Enter new price:", product.price);
+        const newQty = prompt("Enter new stock quantity:", product.quantity);
+
+        if (newPrice !== null && newQty !== null) {
+            product.price = parseFloat(newPrice);
+            product.quantity = parseInt(newQty);
+            updateUI();
+        }
+    }
+    
+    function deleteProduct(id) {
+        inventory = inventory.filter(p => p.id !== id);
+        updateUI();
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = "error";
+        el.style.display = "block";
+        setTimeout(() => el.style.display = "none", 4000);
+    }
+
+    function clearForm() {
+        document.querySelectorAll('.controls input, .controls select').forEach(i => i.value = "");
+    }
+
+    window.onload = loadInventory;
+</script>
+</body>
+</html>
