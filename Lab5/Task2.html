@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Library Book Tracker - AJAX XML</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f8f9fa; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .input-group { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 10px; margin-bottom: 20px; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #343a40; color: white; }
+        .btn { padding: 8px 12px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-add { background: #28a745; color: white; }
+        .btn-status { background: #17a2b8; color: white; }
+        .btn-del { background: #dc3545; color: white; }
+        #statusMsg { padding: 10px; margin-bottom: 15px; border-radius: 4px; display: none; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Library Book Tracker</h2>
+    <div id="statusMsg"></div>
+
+    <div class="input-group">
+        <input type="text" id="bookId" placeholder="Book ID">
+        <input type="text" id="bookTitle" placeholder="Title">
+        <input type="text" id="bookAuthor" placeholder="Author">
+        <select id="bookStatus">
+            <option value="Available">Available</option>
+            <option value="Borrowed">Borrowed</option>
+        </select>
+        <button class="btn btn-add" onclick="addBook()">Add Book</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="bookTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    let xmlDoc = null;
+
+    function loadLibrary() {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "task2.xml", true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                xmlDoc = xhr.responseXML;
+                renderTable();
+            }
+        };
+        xhr.send();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById("bookTableBody");
+        tbody.innerHTML = "";
+        const books = xmlDoc.getElementsByTagName("book");
+
+        for (let i = 0; i < books.length; i++) {
+            const id = books[i].getElementsByTagName("id")[0].textContent;
+            const title = books[i].getElementsByTagName("title")[0].textContent;
+            const author = books[i].getElementsByTagName("author")[0].textContent;
+            const status = books[i].getElementsByTagName("status")[0].textContent;
+
+            const row = `<tr>
+                <td>${id}</td>
+                <td>${title}</td>
+                <td>${author}</td>
+                <td><strong>${status}</strong></td>
+                <td>
+                    <button class="btn btn-status" onclick="toggleStatus('${id}')">Toggle Status</button>
+                    <button class="btn btn-del" onclick="deleteBook('${id}')">Delete</button>
+                </td>
+            </tr>`;
+            tbody.innerHTML += row;
+        }
+    }
+
+    function addBook() {
+        const id = document.getElementById("bookId").value.trim();
+        const title = document.getElementById("bookTitle").value.trim();
+        const author = document.getElementById("bookAuthor").value.trim();
+        const status = document.getElementById("bookStatus").value;
+
+        if (!id || !title || !author) {
+            notify("All fields are required!", "error");
+            return;
+        }
+
+        const newBook = xmlDoc.createElement("book");
+        
+        const idNode = xmlDoc.createElement("id");
+        idNode.textContent = id;
+        const titleNode = xmlDoc.createElement("title");
+        titleNode.textContent = title;
+        const authorNode = xmlDoc.createElement("author");
+        authorNode.textContent = author;
+        const statusNode = xmlDoc.createElement("status");
+        statusNode.textContent = status;
+
+        newBook.appendChild(idNode);
+        newBook.appendChild(titleNode);
+        newBook.appendChild(authorNode);
+        newBook.appendChild(statusNode);
+
+        xmlDoc.documentElement.appendChild(newBook);
+        notify("Book added successfully", "success");
+        clearInputs();
+        renderTable();
+    }
+
+    function toggleStatus(id) {
+        const books = xmlDoc.getElementsByTagName("book");
+        for (let i = 0; i < books.length; i++) {
+            if (books[i].getElementsByTagName("id")[0].textContent === id) {
+                const statusNode = books[i].getElementsByTagName("status")[0];
+                statusNode.textContent = statusNode.textContent === "Available" ? "Borrowed" : "Available";
+                notify("Status updated", "success");
+                renderTable();
+                break;
+            }
+        }
+    }
+
+    function deleteBook(id) {
+        const books = xmlDoc.getElementsByTagName("book");
+        for (let i = 0; i < books.length; i++) {
+            if (books[i].getElementsByTagName("id")[0].textContent === id) {
+                xmlDoc.documentElement.removeChild(books[i]);
+                notify("Book removed", "success");
+                renderTable();
+                break;
+            }
+        }
+    }
+
+    function notify(text, type) {
+        const msg = document.getElementById("statusMsg");
+        msg.textContent = text;
+        msg.className = type;
+        msg.style.display = "block";
+        setTimeout(() => msg.style.display = "none", 3000);
+    }
+
+    function clearInputs() {
+        document.getElementById("bookId").value = "";
+        document.getElementById("bookTitle").value = "";
+        document.getElementById("bookAuthor").value = "";
+    }
+
+    window.onload = loadLibrary;
+</script>
+</body>
+</html>
