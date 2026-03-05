@@ -1,0 +1,192 @@
+:root {
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+    --blue-btn: #2563eb;
+    --blue-btn-hover: #1d4ed8;
+    --bg-color: #f3f4f6;
+    --card-bg: #ffffff;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+h2, h3 {
+    color: var(--text-main);
+    text-align: center;
+    width: 100%;
+}
+
+h2 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+#note-form-container {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 2rem auto;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.form-group input, 
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.form-group input:disabled {
+    background-color: #e5e7eb;
+    cursor: not-allowed;
+    color: var(--text-muted);
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    color: white;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#save-btn {
+    background-color: var(--primary-color);
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+#save-btn:hover { background-color: var(--primary-hover); }
+
+#cancel-btn {
+    background-color: var(--text-muted);
+    width: 100%;
+}
+
+#cancel-btn:hover { background-color: #4b5563; }
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #d1d5db;
+    width: 100%;
+    max-width: 1000px;
+    margin: 2rem auto;
+}
+
+#notes-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1000px;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.note-card {
+    background: var(--card-bg);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.note-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.note-card h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: var(--text-main);
+}
+
+.note-card .subject-badge {
+    display: inline-block;
+    background-color: #e0e7ff;
+    color: var(--primary-hover);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.note-card p {
+    margin: 0.5rem 0 1.5rem 0;
+    color: #4b5563;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.note-card .date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: auto;
+}
+
+.edit-btn, .delete-btn {
+    background-color: var(--blue-btn);
+    flex: 1;
+}
+
+.edit-btn:hover, .delete-btn:hover { 
+    background-color: var(--blue-btn-hover); 
+}
