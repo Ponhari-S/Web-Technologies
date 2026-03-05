@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Book Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h2>Online Book Finder</h2>
+
+    <div class="controls-container">
+        <div class="control-group">
+            <input type="text" id="search-input" placeholder="Search by title...">
+            <button onclick="searchBooks()">Search</button>
+        </div>
+
+        <div class="control-group">
+            <input type="text" id="category-input" placeholder="e.g., Programming">
+            <button onclick="filterByCategory()">Filter Category</button>
+        </div>
+
+        <div class="control-group action-buttons">
+            <button onclick="sortBooks('price')">Sort by Price (Low-High)</button>
+            <button onclick="sortBooks('rating')">Sort by Rating (High-Low)</button>
+            <button onclick="getTopBooks()" class="highlight-btn">Top Rated</button>
+            <button onclick="resetView()">Reset / View All</button>
+        </div>
+    </div>
+
+    <div id="books-container"></div>
+
+    <div class="pagination-container">
+        <button id="load-more-btn" onclick="loadMore()">Load More</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
